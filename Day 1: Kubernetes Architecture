@@ -24,8 +24,8 @@ Containers and Virtual Machines (VMs) are both technologies used to run multiple
 
 Key Differences at a Glance
 Feature ------------------------	Virtual Machines (VMs)	-------------------------------------------- Containers
-Architecture:         Emulates a whole physical computer; includes a full Guest OS.        	Shares the host’s OS kernel; only packages the app and its dependencies.
-Size:                 Gigabytes (GB)	                                                      Megabytes (MB)
+Architecture:           Emulates a whole physical computer; includes a full Guest OS.        	Shares the host’s OS kernel; only packages the app and its dependencies.
+Size:                   Gigabytes (GB)	                                                      Megabytes (MB)
 Startup Time:        	Minutes (must boot up the entire OS)	                                Milliseconds (app starts instantly)
 Resource Efficiency:	High overhead (each VM needs its own CPU, RAM, and OS allocation).	  Highly efficient (shares the host's OS resources dynamically).
 Security/Isolation:  	Extremely high (the guest OS is completely walled off from the host).	Moderate (all containers share the same kernel, making them susceptible to kernel exploits).
