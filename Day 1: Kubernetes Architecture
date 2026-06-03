@@ -17,3 +17,5 @@ The core reasons organizations adopt Kubernetes include:
 
 4.Built-in Networking & Load Balancing
 * Kubernetes automatically exposes containers to the network, assing them DNS names/IP addrsses, and evenly distributed incomming traffic accross instances.
+
+Containers vs VMs
