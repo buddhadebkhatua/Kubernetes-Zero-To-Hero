@@ -1,4 +1,4 @@
-** Why Kubernetes **
+###### Why Kubernetes #####
 Kubernetes is used to automate, scale and manage containerized applications. Companies use it to eliminate manual operations, ensure high avilablity without downtime, and efficiently utilize server resources across complex, multi-cloud environments.
 
 The core reasons organizations adopt Kubernetes include:
@@ -18,4 +18,14 @@ The core reasons organizations adopt Kubernetes include:
 4.Built-in Networking & Load Balancing
 * Kubernetes automatically exposes containers to the network, assing them DNS names/IP addrsses, and evenly distributed incomming traffic accross instances.
 
-Containers vs VMs
+
+###### Containers vs VMs #######
+Containers and Virtual Machines (VMs) are both technologies used to run multiple isolated applications on a single physical machine, but they achieve this differently. VMs virtualize entire physical hardware systems, whereas containers virtualize only the operating system level
+
+Key Differences at a Glance
+Feature ------------------------	Virtual Machines (VMs)	-------------------------------------------- Containers
+Architecture:         Emulates a whole physical computer; includes a full Guest OS.        	Shares the host’s OS kernel; only packages the app and its dependencies.
+Size:                 Gigabytes (GB)	                                                      Megabytes (MB)
+Startup Time:        	Minutes (must boot up the entire OS)	                                Milliseconds (app starts instantly)
+Resource Efficiency:	High overhead (each VM needs its own CPU, RAM, and OS allocation).	  Highly efficient (shares the host's OS resources dynamically).
+Security/Isolation:  	Extremely high (the guest OS is completely walled off from the host).	Moderate (all containers share the same kernel, making them susceptible to kernel exploits).
