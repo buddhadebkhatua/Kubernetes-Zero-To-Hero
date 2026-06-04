@@ -146,3 +146,48 @@ crash-pod   0/1     CrashLoopBackOff   1 (8s ago)   14s
 Learning:
 Container exits immediately
 Kubernetes keeps restarting it
+
+
+####### Scenario 5: Multi-Container Pod
+Pod
+├── Main Application
+└── Log Collector
+
+[root@k8s-control01 ~]# vim multi.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-container
+spec:
+  containers:
+  - name: app
+    image: nginx
+  - name: sidecar
+    image: busybox
+    command:
+      - /bin/sh
+      - -c
+      - while true; do echo "Collecting logs"; sleep 30; done
+
+[root@k8s-control01 ~]# kubectl apply -f multi.yaml
+NAME              READY   STATUS    RESTARTS   AGE
+multi-container   2/2     Running   0          77s
+
+View specific container logs:
+[root@k8s-control01 ~]# kubectl logs multi-container -c sidecar
+[root@k8s-control01 ~]# kubectl logs multi-container -c app
+
+
+####### Scenario 5: Init Container (Database must be reachable before application starts.)
+
+Init Container
+      ↓
+Application Container
+
+[root@k8s-control01 ~]# vim init.yaml
+[root@k8s-control01 ~]# kubectl apply -f init.yaml
+[root@k8s-control01 ~]# kubectl describe pod init-demo
+
+Observe:
+Init Containers:
+Completed
