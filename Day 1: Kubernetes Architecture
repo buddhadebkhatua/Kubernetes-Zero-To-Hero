@@ -51,9 +51,7 @@ While Docker revolutionized software development, it is not always the best fit 
 
 ##### Control Plane #####
 The control plane includes components like the API Server, Scheduler, and Controller Manager. The control plane maintains communication with worker nodes. When you deploy applications on Kubernetes, you tell the control plane to start the application’s containers. The control plane then schedules the containers to run on the cluster’s nodes.
-
 Technically speaking, the Kubernetes control plane is a collection of processes that manages the state of a Kubernetes cluster. It receives information about cluster activity and requests, and uses this information to move cluster resources to the desired state. The control plane interacts with individual cluster nodes using the kubelet, an agent deployed on each node.
-
 To have a highly available control plane, you should have at least three control plane nodes with the components replicated across all three nodes.
 
 Here are the main components of the control plane:
