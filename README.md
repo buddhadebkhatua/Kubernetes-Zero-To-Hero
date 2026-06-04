@@ -65,7 +65,7 @@ Install:
 
 ---
 
-## Day 2: Build Single Node Cluster
+## Day 2: Build Three Node Cluster
 
 ## Day 3: Pods
 
