@@ -75,3 +75,74 @@ Accessing Pod:
 Delete Pod:
 [root@k8s-control01 ~]# kubectl delete pod nginx-pod
 
+
+####### Scenario 2: Create a log-generating pod
+[root@k8s-control01 ~]# busybox.yaml
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: logger
+
+spec:
+  containers:
+  - name: logger
+    image: busybox
+    command:
+      - /bin/sh
+      - -c
+      - while true; do date; sleep 5; done
+
+[root@k8s-control01 ~]# kubectl apply -f busybox.yaml
+
+View Logs:
+[root@k8s-control01 ~]# kubectl logs logger
+
+Follow logs:
+[root@k8s-control01 ~]# kubectl logs -f logger
+
+
+
+####### Scenario 3: ImagePullBackOff
+[root@k8s-control01 ~]# vim badimage.yaml
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: badimage
+
+spec:
+  containers:
+  - name: nginx
+    image: nginx:abc123
+
+[root@k8s-control01 ~]# kubectl apply -f badimage.yaml
+[root@k8s-control01 ~]# kubectl get pods
+NAME        READY   STATUS             RESTARTS     AGE
+nginx   0/1     ImagePullBackOff   1 (7s ago)   13s
+
+:::::Troubleshooting::::
+[root@k8s-control01 ~]# kubectl describe pod badimage
+
+Observe:
+Failed to pull image
+
+Fix:
+image: nginx:latest
+
+
+
+####### Scenario 4: CrashLoopBackOff
+[root@k8s-control01 ~]# vim crash.yml
+[root@k8s-control01 ~]# kubectl apply -f crash.yml
+[root@k8s-control01 ~]# kubectl get pods
+NAME        READY   STATUS             RESTARTS     AGE
+crash-pod   0/1     CrashLoopBackOff   1 (8s ago)   14s
+
+:::::Troubleshooting::::
+[root@k8s-control01 ~]# kubectl describe pod crash-pod
+[root@k8s-control01 ~]# kubectl logs crash-pod
+
+Learning:
+Container exits immediately
+Kubernetes keeps restarting it
