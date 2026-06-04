@@ -1,0 +1,77 @@
+********** Learning Objectives ***************
+
+By the end of Day 3, you should be able to:
+
+Understand what a Pod is
+Create Pods using YAML
+Inspect Pod lifecycle
+Access Pods
+View logs
+Troubleshoot failed Pods
+Understand Init Containers
+Understand Multi-Container Pods
+Troubleshoot CrashLoopBackOff
+Troubleshoot ImagePullBackOff
+Handle production Pod failures
+
+* What is Pod?
+A Pod is the smallest deployable object in Kubernetes.
+
+Think of it as:
+Pod
+|--Container 1
+|--Container 2
+|-- Shared Network & Storage
+
+** Pod Characteristics **
+Every Pod has:
+1. Own IP Address
+2. Shared Storage (Conatiners inside a Pod can share volume)
+3. Shared Network Namespace (Container inside the same Pod communicate using localhost)
+
+
+#### Scenario 1: Create First Pod
+
+create YAML:
+[root@k8s-control01 ~]# vim nginx.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+spec:
+  containers:
+    - name: nginx
+      image: nginx:latest
+
+Deploy:
+[root@k8s-control01 ~]# kubectl apply -f nginx.yml
+
+Verify:
+[root@k8s-control01 ~]# kubectl get pods
+NAME        READY   STATUS    RESTARTS   AGE
+nginx-pod   1/1     Running   0          25s
+
+Inspect Pod:
+[root@k8s-control01 ~]# kubectl describe pod nginx-pod
+
+
+#### Pod Lifecycle
+pending
+   ↓
+ContainerCreationg
+   ↓
+Running
+   ↓
+Succeeded
+   ↓
+Failed
+
+Check:
+[root@k8s-control01 ~]# kubectl get pods -w
+
+Accessing Pod:
+[root@k8s-control01 ~]# kubectl exec -it nginx-pod -- bash
+
+Delete Pod:
+[root@k8s-control01 ~]# kubectl delete pod nginx-pod
+
