@@ -191,3 +191,18 @@ Application Container
 Observe:
 Init Containers:
 Completed
+
+
+Interview Questions (●'◡'●)
+What is a Pod?
+Can a Pod have multiple containers?
+Why do containers inside a Pod communicate via localhost?
+Difference between Pod and Container?
+What causes CrashLoopBackOff?
+What causes ImagePullBackOff?
+How do you check Pod logs?
+How do you access a running Pod?
+What is an Init Container?
+What is a Sidecar Container?
+How do you troubleshoot a Pod stuck in Pending state?
+What happens if a standalone Pod is deleted?
