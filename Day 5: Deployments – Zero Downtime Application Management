@@ -1,0 +1,39 @@
+############## Learning Objectives #################
+By the end of Day 5, you will understand:
+
+What is a Deployment?
+Why Deployments are used instead of ReplicaSets
+Rolling Updates
+Rollbacks
+Deployment Strategies
+Zero-Downtime Deployments
+Revision History
+Production Upgrade Scenarios
+Troubleshooting Failed Deployments
+
+##########################################
+@@ What is a Deployment?
+=> Deployment is a Kubernetes object that manages ReplicaSets.
+
+@@ Architecture:
+Deployment
+    ↓
+ReplicaSet
+    ↓
+  Pods
+
+@@ Example:
+Deployment
+    ↓
+ReplicaSet-v1
+    ↓
+ 3 Pods
+
+@@ When version changes:
+Deployment
+    ↓
+ReplicaSet-v2
+    ↓
+3 New Pods
+
+Old ReplicaSet remains available for rollback.
