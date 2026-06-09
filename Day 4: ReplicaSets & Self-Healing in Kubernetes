@@ -195,8 +195,7 @@ This is one of the most common interview questions.
 #######################################
 ######## Worker Node Failure ##########
 
-Architecture:
-
+@@ Architecture:
 Worker-1
   Pod-A
   Pod-B
@@ -206,43 +205,36 @@ Worker-2
 
 Worker-1 crashes.
 
-Result:
-
+@@ Result:
 Pod-A Lost
 Pod-B Lost
 
-ReplicaSet notices:
-
+@@ ReplicaSet notices:
 Desired = 3
 Running = 1
 
-Kubernetes schedules:
-
+@@ Kubernetes schedules:
 New Pods on Worker-2
 
 Application survives.
 
-Lab
+##########################
+############ Lab #########
+@@ Drain Node:
 
-Drain Node:
+[root@k8s-control01 ~]# kubectl drain worker01 --ignore-daemonsets
 
-kubectl drain worker01 --ignore-daemonsets
-
-Observe:
-
-kubectl get pods -o wide
+@@ Observe:
+[root@k8s-control01 ~]# kubectl get pods -o wide
 
 Pods move to another node.
 
-Part 8: Expert Scenario
-Banking Application HA
-
-Requirement:
-
+#################################
+######### Banking Application HA #############
+@@ Requirement:
 99.99% Availability
 
-Design:
-
+@@ Design:
 ReplicaSet: 3
 
 Worker-1
@@ -251,85 +243,17 @@ Worker-3
 
 One Pod per worker.
 
-Benefits:
-
+@@ Benefits:
 Pod Failure -> Survives
-
 Node Failure -> Survives
-
 OS Reboot -> Survives
-Verify Distribution
-kubectl get pods -o wide
 
-Check:
+@@ Verify Distribution
+[root@k8s-control01 ~]# kubectl get pods -o wide
 
-NODE column
-Production Reality
+######################################
+########## Interview Questions ##########
 
-Most engineers never create ReplicaSets directly.
-
-Instead:
-
-Deployment
-     |
- ReplicaSet
-     |
-    Pods
-
-Example:
-
-Deployment Created
-
-Automatically Creates ReplicaSet
-
-ReplicaSet Creates Pods
-
-Tomorrow (Day 5), you'll learn Deployments.
-
-Troubleshooting Scenarios
-Scenario 1
-
-ReplicaSet not creating Pods.
-
-Check:
-
-kubectl describe rs nginx-rs
-
-Possible causes:
-
-Invalid image
-Resource shortage
-Label mismatch
-Scenario 2
-
-Replica count not matching.
-
-Check:
-
-kubectl get rs
-kubectl describe rs
-
-Look for:
-
-FailedScheduling
-ImagePullBackOff
-Scenario 3
-
-Pods constantly recreated.
-
-Check:
-
-kubectl logs
-kubectl describe pod
-
-Possible reason:
-
-CrashLoopBackOff
-
-ReplicaSet keeps trying to satisfy desired state.
-
-Interview Questions
-Beginner
 What is a ReplicaSet?
 Why do we need ReplicaSets?
 What is self-healing?
