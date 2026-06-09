@@ -258,12 +258,10 @@ What is a ReplicaSet?
 Why do we need ReplicaSets?
 What is self-healing?
 How does ReplicaSet identify Pods?
-Intermediate
 Difference between Pod and ReplicaSet?
 How do you scale a ReplicaSet?
 What happens when a Pod is deleted?
 What are labels and selectors?
-Expert
 What happens when a node fails?
 Can ReplicaSet perform rolling updates?
 Why are Deployments preferred over ReplicaSets?
