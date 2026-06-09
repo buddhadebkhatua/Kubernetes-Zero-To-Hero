@@ -1,1 +1,15 @@
+*********** Learning Objective **************
+By the end of Day 4, you should understand:
 
+Why Pods alone are not enough
+What a ReplicaSet is
+How Kubernetes maintains desired state
+Self-healing concepts
+Pod recreation process
+Node failure scenarios
+High Availability concepts
+How ReplicaSets work behind Deployments
+Production troubleshooting
+
+What is a ReplicaSet?
+Ans: A ReplicaSet ensures that a specified number of Pod replicas are always running.
