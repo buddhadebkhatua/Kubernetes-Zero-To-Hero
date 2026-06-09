@@ -1,7 +1,6 @@
 *********** Learning Objective **************
 By the end of Day 4, you should understand:
 
-Why Pods alone are not enough
 What a ReplicaSet is
 How Kubernetes maintains desired state
 Self-healing concepts
@@ -13,3 +12,125 @@ Production troubleshooting
 
 What is a ReplicaSet?
 Ans: A ReplicaSet ensures that a specified number of Pod replicas are always running.
+
+Example:
+
+Desired State = 3 Pods
+Running Pods = 3
+
+If one Pod dies:
+
+Desired State = 3
+Running Pods = 2
+
+ReplicaSet automatically creates:
+
+New Pod = 1
+Running Pods = 3
+
+This is called:
+
+Self-Healing
+
+
+Scenario 1: Create ReplicaSet
+replicaset.yaml
+
+apiVersion: apps/v1
+kind: ReplicaSet
+
+metadata:
+  name: nginx-rs
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+
+Deploy:
+
+kubectl apply -f replicaset.yaml
+
+Verify:
+
+kubectl get rs
+
+Expected:
+
+NAME       DESIRED CURRENT READY
+nginx-rs   3       3       3
+
+Check Pods:
+
+kubectl get pods
+
+Example:
+
+nginx-rs-x1abc
+nginx-rs-y2def
+nginx-rs-z3ghi
+Understanding Labels & Selectors
+
+ReplicaSet tracks Pods using:
+
+matchLabels:
+  app: nginx
+
+and
+
+labels:
+  app: nginx
+
+These must match.
+
+Think:
+
+ReplicaSet = Manager
+
+Labels = Employee ID Card
+
+Selector = Employee Database Search
+Part 3: Self-Healing Demo
+
+Delete a Pod:
+
+kubectl delete pod nginx-rs-x1abc
+
+Watch:
+
+kubectl get pods -w
+
+Observe:
+
+Old Pod Terminating
+
+New Pod Created
+
+Desired Count Maintained
+Assignment
+
+Delete all Pods one by one.
+
+Observe:
+
+ReplicaSet keeps recreating them.
+
+Question:
+
+Can users still access the application?
+
+Answer:
+
+Yes (if Service is configured properly).
