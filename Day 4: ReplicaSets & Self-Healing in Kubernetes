@@ -1,17 +1,17 @@
 *********** Learning Objective **************
 By the end of Day 4, you should understand:
 
-What a ReplicaSet is
-How Kubernetes maintains desired state
-Self-healing concepts
-Pod recreation process
-Node failure scenarios
-High Availability concepts
-How ReplicaSets work behind Deployments
-Production troubleshooting
+1. What a ReplicaSet is
+2. How Kubernetes maintains desired state
+3. Self-healing concepts
+4. Pod recreation process
+5. Node failure scenarios
+6. High Availability concepts
+7. How ReplicaSets work behind Deployments
+8 Production troubleshooting
 
-What is a ReplicaSet?
-Ans: A ReplicaSet ensures that a specified number of Pod replicas are always running.
+@@ What is a ReplicaSet?
+=> A ReplicaSet ensures that a specified number of Pod replicas are always running.
 
 Example:
 
@@ -28,109 +28,319 @@ ReplicaSet automatically creates:
 New Pod = 1
 Running Pods = 3
 
-This is called:
+@@ This is called ==> Self-Healing
 
-Self-Healing
+################################################
+########## Create ReplicaSet ################
 
-
-Scenario 1: Create ReplicaSet
-replicaset.yaml
-
+[root@k8s-control01 ~]# replicaset.yml
 apiVersion: apps/v1
 kind: ReplicaSet
-
 metadata:
   name: nginx-rs
-
 spec:
   replicas: 3
-
   selector:
     matchLabels:
       app: nginx
-
   template:
     metadata:
       labels:
         app: nginx
-
     spec:
       containers:
       - name: nginx
         image: nginx
 
-Deploy:
+@@ Deploy:
+[root@k8s-control01 ~]# kubectl apply -f replicaset.yml
 
-kubectl apply -f replicaset.yaml
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get rs
 
-Verify:
-
-kubectl get rs
-
-Expected:
-
+@@ Expected:
 NAME       DESIRED CURRENT READY
 nginx-rs   3       3       3
 
-Check Pods:
+@@ Check Pods:
+[root@k8s-control01 ~]# kubectl get pods
 
-kubectl get pods
-
-Example:
-
+@@ Example:
 nginx-rs-x1abc
 nginx-rs-y2def
 nginx-rs-z3ghi
-Understanding Labels & Selectors
 
-ReplicaSet tracks Pods using:
+@@ Understanding Labels & Selectors
+@@ ReplicaSet tracks Pods using:
 
-matchLabels:
+@@ matchLabels:
   app: nginx
-
 and
-
 labels:
   app: nginx
 
 These must match.
 
-Think:
-
+@@ Think:
 ReplicaSet = Manager
-
 Labels = Employee ID Card
-
 Selector = Employee Database Search
-Part 3: Self-Healing Demo
 
-Delete a Pod:
+#########################################
+########### Self-Healing Demo #######
 
-kubectl delete pod nginx-rs-x1abc
+@@ Delete a Pod:
+[root@k8s-control01 ~]# kubectl delete pod nginx-rs-x1abc
 
-Watch:
+@@ Watch:
+[root@k8s-control01 ~]# kubectl get pods -w
 
-kubectl get pods -w
-
-Observe:
-
+@@ Observe:
 Old Pod Terminating
-
 New Pod Created
-
 Desired Count Maintained
 Assignment
-
 Delete all Pods one by one.
+
+@@ Observe:
+ReplicaSet keeps recreating them.
+
+@@ Question:
+Can users still access the application?
+
+@@ Answer:
+Yes (if Service is configured properly).
+
+#####################################
+############ Scaling ##############
+@@ Current:
+3 Pods
+
+@@ Scale Up:
+[root@k8s-control01 ~]# kubectl scale rs nginx-rs --replicas=5
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get pods
+
+@@ Expected:
+5 Pods
+
+@@ Scale Down
+[root@k8s-control01 ~]# kubectl scale rs nginx-rs --replicas=2
+
+@@ Observe:
+Extra Pods removed
+Why Scaling Matters
+
+@@ Real Scenario:
+Normal Traffic = 2 Pods
+Black Friday Sale = 20 Pods
+Scaling handles increased load.
+
+
+###########################################
+######## Accidental Pod Deletion #####
+
+Production Incident
+@@ Developer accidentally runs:
+[root@k8s-control01 ~]# kubectl delete pod --all
+
+@@ What happens?
+ReplicaSet detects:
+
+Desired = 3
+Current = 0
+
+Action:
+
+Creates 3 new Pods automatically.
+
+Application recovers.
+
+@@ Investigation Commands
+[root@k8s-control01 ~]# kubectl get rs
+[root@k8s-control01 ~]# kubectl describe rs nginx-rs
+
+@@ Look at:
+Events
+Current Replicas
+Desired Replicas
+
+######################################
+######### Label Mismatch Problem ##########
+
+@@ Create a Pod manually:
+
+labels:
+  app: apache
+
+ReplicaSet expects:
+
+app: nginx
+
+@@ Question:
+
+Will ReplicaSet manage this Pod?
+=> No.
+
+Because selector does not match.
+
+Verify:
+
+[root@k8s-control01 ~]# kubectl get pods --show-labels
+
+@@ Learning
+This is one of the most common interview questions.
+
+#######################################
+######## Worker Node Failure ##########
+
+Architecture:
+
+Worker-1
+  Pod-A
+  Pod-B
+
+Worker-2
+  Pod-C
+
+Worker-1 crashes.
+
+Result:
+
+Pod-A Lost
+Pod-B Lost
+
+ReplicaSet notices:
+
+Desired = 3
+Running = 1
+
+Kubernetes schedules:
+
+New Pods on Worker-2
+
+Application survives.
+
+Lab
+
+Drain Node:
+
+kubectl drain worker01 --ignore-daemonsets
 
 Observe:
 
-ReplicaSet keeps recreating them.
+kubectl get pods -o wide
 
-Question:
+Pods move to another node.
 
-Can users still access the application?
+Part 8: Expert Scenario
+Banking Application HA
 
-Answer:
+Requirement:
 
-Yes (if Service is configured properly).
+99.99% Availability
+
+Design:
+
+ReplicaSet: 3
+
+Worker-1
+Worker-2
+Worker-3
+
+One Pod per worker.
+
+Benefits:
+
+Pod Failure -> Survives
+
+Node Failure -> Survives
+
+OS Reboot -> Survives
+Verify Distribution
+kubectl get pods -o wide
+
+Check:
+
+NODE column
+Production Reality
+
+Most engineers never create ReplicaSets directly.
+
+Instead:
+
+Deployment
+     |
+ ReplicaSet
+     |
+    Pods
+
+Example:
+
+Deployment Created
+
+Automatically Creates ReplicaSet
+
+ReplicaSet Creates Pods
+
+Tomorrow (Day 5), you'll learn Deployments.
+
+Troubleshooting Scenarios
+Scenario 1
+
+ReplicaSet not creating Pods.
+
+Check:
+
+kubectl describe rs nginx-rs
+
+Possible causes:
+
+Invalid image
+Resource shortage
+Label mismatch
+Scenario 2
+
+Replica count not matching.
+
+Check:
+
+kubectl get rs
+kubectl describe rs
+
+Look for:
+
+FailedScheduling
+ImagePullBackOff
+Scenario 3
+
+Pods constantly recreated.
+
+Check:
+
+kubectl logs
+kubectl describe pod
+
+Possible reason:
+
+CrashLoopBackOff
+
+ReplicaSet keeps trying to satisfy desired state.
+
+Interview Questions
+Beginner
+What is a ReplicaSet?
+Why do we need ReplicaSets?
+What is self-healing?
+How does ReplicaSet identify Pods?
+Intermediate
+Difference between Pod and ReplicaSet?
+How do you scale a ReplicaSet?
+What happens when a Pod is deleted?
+What are labels and selectors?
+Expert
+What happens when a node fails?
+Can ReplicaSet perform rolling updates?
+Why are Deployments preferred over ReplicaSets?
+How does Kubernetes maintain desired state?
