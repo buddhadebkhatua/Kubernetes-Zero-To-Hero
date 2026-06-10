@@ -1,0 +1,15 @@
+############ Learning Objectives ############
+By the end of Day 6, you will understand:
+
+What is a Namespace?
+Why Namespaces are needed
+Default Namespaces
+Namespace Isolation
+Resource Segregation
+Multi-Team Kubernetes Clusters
+Production Namespace Design
+Namespace Troubleshooting
+RBAC Integration
+
+@@ What is a Namespace?
+=> A Namespace is a logical partition inside a Kubernetes cluster.
