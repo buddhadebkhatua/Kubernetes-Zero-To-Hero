@@ -8,7 +8,6 @@ Rollbacks
 Deployment Strategies
 Zero-Downtime Deployments
 Revision History
-Production Upgrade Scenarios
 Troubleshooting Failed Deployments
 
 ##########################################
@@ -69,3 +68,113 @@ spec:
 @@ Expected:
 NAME               READY
 nginx-deployment   3/3
+
+@@ Check ReplicaSet:
+
+[root@k8s-control01 ~]# kubectl get rs
+
+@@ Check Pods:
+[root@k8s-control01 ~]# kubectl get pods
+
+@@ Observe:
+
+Deployment
+   ↓
+ReplicaSet
+   ↓
+Pods
+
+###################################################
+############# Rolling Updates ################
+Scenario: Upgrade Application
+
+@@ Current:
+nginx:1.25
+
+@@ Update:
+image: nginx:1.26
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f nginx-deployment.yaml
+
+@@ Monitor:
+[root@k8s-control01 ~]# kubectl rollout status deployment nginx-deployment
+
+@@ Expected:
+deployment successfully rolled out
+
+@@ Watch live:
+[root@k8s-control01 ~]# kubectl get pods -w
+
+@@ Observe:
+Old Pod Terminating
+New Pod Creating
+
+===> This is called Rolling Update
+
+###################################
+########## Rollback ####################
+Scenario: Bad Release
+
+@@ Current:
+nginx:1.26
+
+@@ Deploy broken version:
+image: nginx:badversion
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f nginx-deployment.yaml
+
+@@ Check:
+kubectl get pods
+
+@@ Possible result:
+ImagePullBackOff
+
+@@ View rollout status:
+[root@k8s-control01 ~]# kubectl rollout status deployment nginx-deployment
+
+@@ Rollback:
+[root@k8s-control01 ~]# kubectl rollout undo deployment nginx-deployment
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get pods
+
+Application restored.
+
+#########################################
+############ Revision History #########
+@@ Check revisions:
+[root@k8s-control01 ~]# kubectl rollout history deployment nginx-deployment
+
+@@ Example:
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+
+@@ Rollback to specific revision:
+[root@k8s-control01 ~]# kubectl rollout undo deployment nginx-deployment --to-revision=2
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl rollout history deployment nginx-deployment
+
+@@ Rollback to previous version:
+ [root@k8s-control01 ~]# kubectl rollout undo deployment nginx-deployment
+
+#################################################
+################ Interview Questions ########
+
+What is a Deployment?
+Why use Deployment instead of ReplicaSet?
+How does a Deployment create Pods?
+What is a Rolling Update?
+How do you rollback a Deployment?
+How do you check rollout status?
+How do you view Deployment history?
+What happens when Deployment YAML changes?
+Difference between Deployment and ReplicaSet?
+Explain Blue-Green Deployment.
+Explain Canary Deployment.
+How would you perform a zero-downtime production upgrade?
+What happens internally during a rolling update?
