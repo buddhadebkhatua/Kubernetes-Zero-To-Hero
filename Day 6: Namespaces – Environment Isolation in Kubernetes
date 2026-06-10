@@ -13,3 +13,154 @@ RBAC Integration
 
 @@ What is a Namespace?
 => A Namespace is a logical partition inside a Kubernetes cluster.
+
+@@ Think of it like:
+
+Linux Server
+ ├── User1 Home Directory
+ ├── User2 Home Directory
+ └── User3 Home Directory
+
+@@ Similarly:
+
+Kubernetes Cluster
+ ├── dev
+ ├── qa
+ ├── prod
+ └── monitoring
+
+#########################################
+########## Default Namespaces #########
+@@ Check existing namespaces:
+[root@k8s-control01 ~]# kubectl get ns
+
+@@ Output:
+default
+kube-system
+kube-public
+kube-node-lease
+
+@@ kube-system Contains Kubernetes components.
+@@ Examples:
+[root@k8s-control01 ~]# kubectl get pods -n kube-system
+coredns
+etcd
+kube-apiserver
+kube-scheduler
+
+@@ Never delete anything here.
+
+###############################
+######## default ###########
+Used when no namespace is specified.
+
+@@ Example:
+[root@k8s-control01 ~]# kubectl get pods
+
+@@ Actually means:
+[root@k8s-control01 ~]# kubectl get pods -n default
+
+###################################
+######### Create Namespace ############
+@@ Create:
+[root@k8s-control01 ~]# kubectl create namespace dev
+
+@@ Verify:
+[root@k8s-control01 ~]#  kubectl get ns
+
+@@ Expected:
+dev
+
+@@ Create more:
+[root@k8s-control01 ~]# kubectl create ns qa
+[root@k8s-control01 ~]#  kubectl create ns prod
+
+@@ Verify:
+[root@k8s-control01 ~]#  kubectl get ns
+
+###################################################
+%%%%%%%%%% Deploy Application in Namespace %%%%%%%%%
+@@ Create:
+[root@k8s-control01 ~]# nginx-dev.yml
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: nginx
+  namespace: dev
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f nginx-dev.yml
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get pods -n dev
+
+@@ Check default namespace:
+[root@k8s-control01 ~]# kubectl get pods
+
+@@ Output:
+No resources found
+
+Because Pods exist only in dev namespace.
+
+
+###########################################
+######## Working with Namespaces ###########
+
+If you Deploy same application name, it works because Namespaces isolate resource names.
+
+@@ Example:
+dev/nginx
+qa/nginx
+prod/nginx
+
+All valid.
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get deploy -A
+
+@@ Output:
+NAMESPACE   NAME
+dev         nginx
+qa          nginx
+prod        nginx
+
+
+################################################
+############ Namespace Switching ################
+Instead of:
+[root@k8s-control01 ~]# kubectl get pods -n dev
+
+every time, switch context:
+
+@@ View:
+[root@k8s-control01 ~]# kubectl config get-contexts
+
+@@Set default namespace:
+[root@k8s-control01 ~]#  kubectl config set-context --current --namespace=dev
+
+@@ Now:
+[root@k8s-control01 ~]#  kubectl get pods
+
+@@ shows:
+dev namespace pods
+
+@@ Restore:
+[root@k8s-control01 ~]#  kubectl config set-context --current --namespace=default
