@@ -50,29 +50,24 @@ Kubernetes uses labels exactly the same way.
 ##############################
 ######## First Label ###########
 @@ Create:
-vim pod.yml
-
+[root@k8s-control01 ~]# vim pod.yml
 apiVersion: v1
 kind: Pod
-
 metadata:
   name: nginx-pod
-
   labels:
     app: nginx
-
 spec:
   containers:
   - name: nginx
     image: nginx
 
-Apply:
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f pod.yml
 
-kubectl apply -f pod.yml
+@@ Verify Labels
 
-Verify Labels
-
-kubectl get pods --show-labels
+[root@k8s-control01 ~]# kubectl get pods --show-labels
 
 Output:
 
