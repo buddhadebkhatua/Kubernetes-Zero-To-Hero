@@ -145,7 +145,7 @@ prod        nginx
 
 ################################################
 ############ Namespace Switching ################
-Instead of:
+@@ Instead of:
 [root@k8s-control01 ~]# kubectl get pods -n dev
 
 every time, switch context:
@@ -153,14 +153,75 @@ every time, switch context:
 @@ View:
 [root@k8s-control01 ~]# kubectl config get-contexts
 
-@@Set default namespace:
-[root@k8s-control01 ~]#  kubectl config set-context --current --namespace=dev
+@@ Set default namespace:
+[root@k8s-control01 ~]# kubectl config set-context --current --namespace=dev
 
 @@ Now:
-[root@k8s-control01 ~]#  kubectl get pods
+[root@k8s-control01 ~]# kubectl get pods
 
 @@ shows:
 dev namespace pods
 
 @@ Restore:
-[root@k8s-control01 ~]#  kubectl config set-context --current --namespace=default
+[root@k8s-control01 ~]# kubectl config set-context --current --namespace=default
+
+#######################################################
+################# Developer Accidentally Deploys in Production #########################
+@@ Current Context:
+prod
+
+@@ Developer thinks:
+I am in dev
+
+@@ Runs:
+[root@k8s-control01 ~]# kubectl apply -f test-app.yml
+
+@@ Result:
+Application deployed in Production
+
+How to Prevent?
+
+@@ Always verify:
+[root@k8s-control01 ~]# kubectl config view --minify
+or
+[root@k8s-control01 ~]# kubectl config current-context
+
+before deployment.
+
+##################################################################
+################ Find Resources Across All Namespaces ###############
+@@ Problem:
+Application disappeared.
+
+@@ Search:
+[root@k8s-control01 ~]# kubectl get pods -A
+or
+[root@k8s-control01 ~]# kubectl get all -A
+
+@@ Output:
+Shows resources from all namespaces.
+
+This command is heavily used by Kubernetes administrators.
+
+##########################################################
+###################### Resource Quotas ####################
+@@ Problem:
+Developer creates 100 Pods Cluster resources exhausted.
+
+@@ Create ResourceQuota:
+[root@k8s-control01 ~]# vim quota.yml
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: dev-quota
+  namespace: dev
+spec:
+  hard:
+    pods: "10"
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f quota.yml
+
+@@ Now:
+Maximum 10 Pods allowed in dev namespace.
