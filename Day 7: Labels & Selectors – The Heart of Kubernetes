@@ -1,0 +1,494 @@
+############ Learning Objectives ###################
+By the end of Day 7, you will understand:
+
+What are Labels?
+What are Selectors?
+Why Kubernetes depends on Labels
+How Deployments find Pods
+How Services find Pods
+MatchLabels
+MatchExpressions
+Label Strategies
+Production Labeling Standards
+Troubleshooting Label Issues
+
+#########################################
+########## Real-World Example ###########
+@@ Imagine a company with 500 Pods:
+
+Frontend Pods
+Backend Pods
+Database Pods
+Monitoring Pods
+Logging Pods
+
+@@ How does Kubernetes identify which Pods belong to which application?
+=> Labels
+
+@@ What is a Label?
+=> A Label is a key-value pair attached to Kubernetes objects.
+
+@@ Example:
+labels:
+  app: nginx
+
+@@ Or:
+labels:
+  app: payment-service
+  env: production
+  team: devops
+
+@@ Think of labels as:
+Employee ID Card
+
+Name: John
+Department: IT
+Location: Kolkata
+
+Kubernetes uses labels exactly the same way.
+
+##############################
+######## First Label ###########
+@@ Create:
+vim pod.yml
+
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: nginx-pod
+
+  labels:
+    app: nginx
+
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+
+Apply:
+
+kubectl apply -f pod.yml
+
+Verify Labels
+
+kubectl get pods --show-labels
+
+Output:
+
+NAME         LABELS
+
+nginx-pod    app=nginx
+Part 3: What is a Selector?
+
+A Selector is how Kubernetes searches for resources.
+
+Example:
+
+kubectl get pods -l app=nginx
+
+Output:
+
+nginx-pod
+
+This means:
+
+Find all Pods
+where
+app=nginx
+Beginner Lab
+Scenario 1
+
+Create three Pods.
+
+Pod 1
+labels:
+  app: nginx
+Pod 2
+labels:
+  app: apache
+Pod 3
+labels:
+  app: nginx
+
+Search:
+
+kubectl get pods -l app=nginx
+
+Result:
+
+Pod1
+Pod3
+
+Search:
+
+kubectl get pods -l app=apache
+
+Result:
+
+Pod2
+
+Learning:
+
+Labels classify resources.
+
+Selectors find resources.
+Part 4: Multiple Labels
+
+Real environments use many labels.
+
+Example:
+
+labels:
+  app: payment
+  env: prod
+  team: devops
+
+Verify:
+
+kubectl get pods --show-labels
+
+Search:
+
+kubectl get pods -l env=prod
+
+or
+
+kubectl get pods -l app=payment
+Intermediate Lab
+Scenario 2
+
+Deploy:
+
+Frontend
+Backend
+Database
+
+Frontend
+
+labels:
+  app: ecommerce
+  tier: frontend
+
+Backend
+
+labels:
+  app: ecommerce
+  tier: backend
+
+Database
+
+labels:
+  app: ecommerce
+  tier: database
+
+Find frontend:
+
+kubectl get pods -l tier=frontend
+
+Find backend:
+
+kubectl get pods -l tier=backend
+
+Find entire application:
+
+kubectl get pods -l app=ecommerce
+Why This Matters
+
+Real production:
+
+300 Frontend Pods
+200 Backend Pods
+50 Database Pods
+
+Labels help identify them instantly.
+
+Part 5: Labels and ReplicaSets
+
+ReplicaSet example:
+
+selector:
+  matchLabels:
+    app: nginx
+
+Pod:
+
+labels:
+  app: nginx
+
+ReplicaSet finds Pod because:
+
+Selector = Label
+
+If Pod label changes:
+
+labels:
+  app: apache
+
+ReplicaSet no longer manages that Pod.
+
+Lab
+
+Change label:
+
+kubectl label pod nginx-pod app=apache --overwrite
+
+Observe ReplicaSet behavior.
+
+Part 6: Labels and Deployments
+
+Deployment:
+
+selector:
+  matchLabels:
+    app: nginx
+
+Pod Template:
+
+labels:
+  app: nginx
+
+Must match.
+
+Bad Example
+
+selector:
+  matchLabels:
+    app: nginx
+
+Pod:
+
+labels:
+  app: apache
+
+Deployment fails.
+
+Troubleshoot:
+
+kubectl describe deployment
+Part 7: Labels and Services
+
+This is where labels become extremely important.
+
+Create Deployment:
+
+labels:
+  app: nginx
+
+Service:
+
+selector:
+  app: nginx
+
+Service discovers Pods automatically.
+
+Architecture
+
+Service
+   |
+Selector
+   |
+app=nginx
+   |
+Pods
+
+Verify
+
+kubectl get endpoints
+
+Service automatically lists matching Pods.
+
+Intermediate Scenario
+Service Not Working
+
+Application unreachable.
+
+Check:
+
+kubectl get endpoints
+
+Output:
+
+No Endpoints
+
+Check:
+
+kubectl get pods --show-labels
+kubectl describe svc
+
+Problem:
+
+Pod Label:
+app=nginx
+
+Service Selector:
+app=apache
+
+Fix:
+
+Update selector.
+
+This is one of the most common real-world issues.
+
+Part 8: Match Expressions
+
+Basic:
+
+matchLabels:
+  app: nginx
+
+Advanced:
+
+matchExpressions:
+- key: env
+  operator: In
+  values:
+  - dev
+  - qa
+
+Meaning:
+
+Select Pods
+where env is dev OR qa
+
+Production Example
+
+matchExpressions:
+- key: team
+  operator: In
+  values:
+  - devops
+  - sre
+
+Useful in large clusters.
+
+Expert Scenario 1
+Banking Application
+
+Architecture:
+
+Internet Banking
+Mobile Banking
+Payment Gateway
+
+Labels:
+
+labels:
+  app: payment-gateway
+  env: prod
+  team: banking
+  criticality: high
+
+Benefits:
+
+Easy Monitoring
+Easy Backup
+Easy Troubleshooting
+
+Search:
+
+kubectl get pods -l criticality=high
+Expert Scenario 2
+Prometheus Monitoring
+
+Monitor only production applications.
+
+Query:
+
+env=prod
+
+Prometheus discovers applications using labels.
+
+Used heavily in enterprises.
+
+Expert Scenario 3
+Backup Strategy
+
+Backup only critical applications.
+
+Labels:
+
+backup: required
+
+Find:
+
+kubectl get pods -l backup=required
+
+Automation becomes simple.
+
+Production Label Standard
+
+Most enterprises follow:
+
+labels:
+  app: payment-api
+  env: prod
+  team: devops
+  version: v1
+  backup: required
+
+Example:
+
+labels:
+  app: sap-fiori
+  env: prod
+  owner: basis-team
+  version: v2
+Troubleshooting Labs
+Scenario 1
+
+Service not routing traffic.
+
+Check:
+
+kubectl describe svc
+
+Verify:
+
+kubectl get endpoints
+
+Look for:
+
+Label mismatch
+Scenario 2
+
+Deployment not creating Pods.
+
+Check:
+
+kubectl describe deployment
+
+Possible cause:
+
+Selector mismatch
+Scenario 3
+
+ReplicaSet not managing Pod.
+
+Verify:
+
+kubectl get pods --show-labels
+
+Check selector.
+
+Scenario 4
+
+Find all production applications.
+
+kubectl get pods -l env=prod
+Interview Questions
+Beginner
+What is a Label?
+What is a Selector?
+Why are Labels used?
+How do you list labels?
+Intermediate
+How do Services use Labels?
+How do Deployments use Labels?
+What happens if labels don't match selectors?
+What is MatchLabels?
+Expert
+What is MatchExpressions?
+How would you design labels for a banking application?
+Why are labels important for monitoring?
+How are labels used in automation and backups?
