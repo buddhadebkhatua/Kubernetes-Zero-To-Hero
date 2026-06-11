@@ -225,3 +225,35 @@ spec:
 
 @@ Now:
 Maximum 10 Pods allowed in dev namespace.
+
+#########################################################
+############ Namespace Deletion ##################
+@@ Delete namespace:
+[root@k8s-control01 ~]# kubectl delete ns dev
+
+@@ Result:
+Everything inside deleted
+
+@@ Including:
+Pods
+Deployments
+Services
+ConfigMaps
+Secrets
+
+Be very careful.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% Interview Questions %%%%%%%%%%%%%%%%%%%%%
+What is a Namespace?
+Why are Namespaces used?
+What are the default namespaces?
+How do you create a namespace?
+Can two deployments have the same name?
+How do you list resources across all namespaces?
+How do you switch namespaces?
+What happens when a namespace is deleted?
+Explain multi-tenancy using Namespaces.
+How do ResourceQuotas work?
+How do services communicate across namespaces?
+How would you design namespaces for a large enterprise?
