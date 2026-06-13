@@ -1,0 +1,135 @@
+################ Learning Objectives ####################
+By the end of Day 8, you will understand:
+
+What is a Service?
+Why Services are required
+ClusterIP
+NodePort
+LoadBalancer
+ExternalName
+Endpoints
+Service Discovery
+DNS Resolution
+Load Balancing
+Production Troubleshooting
+
+@@ What is a Service?
+=> A Service provides a stable network endpoint for Pods.
+
+@@ Without Service:
+    Frontend
+        ⬇︎
+  Backend Pod IP
+
+Pod recreated → Connection Broken
+
+@@ With Service:
+  Frontend
+     ⬇︎
+backend-service
+     ⬇︎
+ Backend Pods
+
+@@ Pods can change but service IP remains stable.
+
+########################################
+$$$$$$ Kubernetes Service Architecture $$$$$$$$$
+backend-service
+      ⬇︎
+ app=backend
+      ⬇︎
+----------------
+  ⬇︎    ⬇︎      ⬇︎
+Pod1  Pod2   Pod3
+
+#######################################
+########## ClusterIP Service ###########
+@@ What is ClusterIP?
+=> Default Service type. Accessible only inside cluster.
+
+@@ Used for: Frontend → Backend & Backend → Database communication.
+
+##############################################
+################ Lab ##################
+@@ Create deployment
+
+[root@k8s-control01 ~]# deployment.yml
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: nginx
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+[root@k8s-control01 ~]# kubectl apply -f deployment.yml
+
+@@ Create Service
+
+[root@k8s-control01 ~]# vim service.yml
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: nginx-service
+
+spec:
+  selector:
+    app: nginx
+
+  ports:
+  - port: 80
+    targetPort: 80
+
+[root@k8s-control01 ~]# kubectl apply -f service.yml
+
+@@ verify:
+[root@k8s-control01 ~]# kubectl get svc
+
+@@ Test Connectivity
+[root@k8s-control01 ~]# kubectl run testpod --image=busybox -it --rm -- sh
+
+@@ Inside the testpod:
+[root@k8s-control01 ~]# wget -qO- nginx-service
+You should see nginx HTML page.
+
+Service Discovery Using DNS
+@@Verify:
+/ # nslookup nginx-service
+
+@@ Result:
+nginx-service.default.svc.cluster.local
+
+#################################
+###### Service Endpoints #####
+Services don't talk directly to Pods. They use Endpoints.
+
+@@ Check:
+[root@k8s-control01 ~]# kubectl get endpoints
+
+@@ Output:
+NAME            ENDPOINTS
+nginx-service   10.244.0.4:80
+                10.244.0.5:80
+                10.244.0.6:80
+
+@@ Architecture
+Service
+   ⬇︎
+Endpoints
+   ⬇︎
+ Pods
