@@ -504,8 +504,6 @@ Tasks:
 * Upgrade cluster
 * Restore ETCD
 
-Solve everything without documentation.
-
 # Final Capstone Project (What Real Companies Expect)
 
 Build this complete environment:
@@ -533,6 +531,3 @@ Grafana
 Graylog
    |
 ArgoCD
-
-
-This roadmap will take you from **Linux Administrator → Kubernetes Administrator → Production Kubernetes Engineer**
