@@ -9,8 +9,6 @@ How Services find Pods
 MatchLabels
 MatchExpressions
 Label Strategies
-Production Labeling Standards
-Troubleshooting Label Issues
 
 #########################################
 ########## Real-World Example ###########
@@ -240,14 +238,11 @@ This is one of the most common real-world issues.
 
 ####################################
 ####### Match Expressions ###########
-
-Basic:
-
+@@ Basic:
 matchLabels:
   app: nginx
 
-Advanced:
-
+@@ Advanced:
 matchExpressions:
 - key: env
   operator: In
@@ -255,148 +250,18 @@ matchExpressions:
   - dev
   - qa
 
-Meaning:
+@@ Meaning: Select Pods where env is dev OR qa
 
-Select Pods
-where env is dev OR qa
-
-Production Example
-
-matchExpressions:
-- key: team
-  operator: In
-  values:
-  - devops
-  - sre
-
-Useful in large clusters.
-
-Expert Scenario 1
-Banking Application
-
-Architecture:
-
-Internet Banking
-Mobile Banking
-Payment Gateway
-
-Labels:
-
-labels:
-  app: payment-gateway
-  env: prod
-  team: banking
-  criticality: high
-
-Benefits:
-
-Easy Monitoring
-Easy Backup
-Easy Troubleshooting
-
-Search:
-
-kubectl get pods -l criticality=high
-Expert Scenario 2
-Prometheus Monitoring
-
-Monitor only production applications.
-
-Query:
-
-env=prod
-
-Prometheus discovers applications using labels.
-
-Used heavily in enterprises.
-
-Expert Scenario 3
-Backup Strategy
-
-Backup only critical applications.
-
-Labels:
-
-backup: required
-
-Find:
-
-kubectl get pods -l backup=required
-
-Automation becomes simple.
-
-Production Label Standard
-
-Most enterprises follow:
-
-labels:
-  app: payment-api
-  env: prod
-  team: devops
-  version: v1
-  backup: required
-
-Example:
-
-labels:
-  app: sap-fiori
-  env: prod
-  owner: basis-team
-  version: v2
-Troubleshooting Labs
-Scenario 1
-
-Service not routing traffic.
-
-Check:
-
-kubectl describe svc
-
-Verify:
-
-kubectl get endpoints
-
-Look for:
-
-Label mismatch
-Scenario 2
-
-Deployment not creating Pods.
-
-Check:
-
-kubectl describe deployment
-
-Possible cause:
-
-Selector mismatch
-Scenario 3
-
-ReplicaSet not managing Pod.
-
-Verify:
-
-kubectl get pods --show-labels
-
-Check selector.
-
-Scenario 4
-
-Find all production applications.
-
-kubectl get pods -l env=prod
-Interview Questions
-Beginner
+############################################
+########### Interview Questions ###########
 What is a Label?
 What is a Selector?
 Why are Labels used?
 How do you list labels?
-Intermediate
 How do Services use Labels?
 How do Deployments use Labels?
 What happens if labels don't match selectors?
 What is MatchLabels?
-Expert
 What is MatchExpressions?
 How would you design labels for a banking application?
 Why are labels important for monitoring?
