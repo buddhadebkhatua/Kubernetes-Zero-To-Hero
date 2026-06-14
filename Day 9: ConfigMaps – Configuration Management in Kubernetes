@@ -1,0 +1,225 @@
+############### Learning Objectives #############
+By the end of Day 9, you will understand:
+
+What is a ConfigMap?
+Why ConfigMaps are required
+Environment Variables
+Volume Mounts
+Externalized Configuration
+Updating ConfigMaps
+Production Best Practices
+ConfigMap Troubleshooting
+Difference between ConfigMap and Secret
+
+###############################
+##### Real-World Scenario #####
+Imagine, you have Payment Application
+
+@@ Dev Environment:
+DB_HOST=dev-db.company.local
+
+@@ QA Environment:
+DB_HOST=qa-db.company.local
+
+@@ Production:
+DB_HOST=prod-db.company.local
+
+Without ConfigMaps Build New Image Deploy Again. Every configuration change requires rebuilding the application. Not practical.
+
+@@ What is a ConfigMap?
+=> A ConfigMap stores non-sensitive configuration data separately from application code.
+
+@@ Example:
+Application
+      ⬇︎
+Configuration
+      ⬇︎
+ConfigMap
+
+@@ Benefits:
+Separation of Code and Configuration
+Easy Updates
+Environment-Specific Settings
+
+#########################################
+######## Create First ConfigMap #######
+@@ Create:
+[root@k8s-control01 ~]# vim configmap.yml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_ENV: "development"
+  LOG_LEVEL: "debug"
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f configmap.yml
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get configmap
+
+@@ Output:
+app-config
+
+@@ Inspect:
+[root@k8s-control01 ~]# kubectl describe configmap app-config
+
+
+####################################################
+##### Using ConfigMap as Environment Variables #####
+@@ Create Deployment:
+[root@k8s-control01 ~]# vim deployment.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-demo
+  template:
+    metadata:
+      labels:
+        app: config-demo
+    spec:
+      containers:
+      - name: app
+        image: nginx
+        env:
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_ENV
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: LOG_LEVEL
+
+@@ Deploy:
+[root@k8s-control01 ~]# kubectl apply -f deployment.yml
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl exec -it POD_NAME -- env | grep APP_ENV
+
+@@ Output:
+APP_ENV=development
+
+####################################################
+########## Import Entire ConfigMap ################
+Instead of individual variables:
+[root@k8s-control01 ~]# vim deployment.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-demo
+  template:
+    metadata:
+      labels:
+        app: config-demo
+    spec:
+      containers:
+      - name: app
+        image: nginx
+        envFrom:
+          - configMapRef:
+              name: app-config
+
+All keys become environment variables.
+
+###################################
+### Microservice Configuration ###
+@@ ConfigMap:
+data:
+  DB_HOST: mysql-service
+  SMTP_SERVER: smtp.company.com
+  API_URL: https://api.company.com
+  LOG_LEVEL: INFO
+
+Application automatically loads configuration.
+
+@@ Benefits:
+Single Source of Configuration
+Easy Management
+
+##########################################
+######## Using ConfigMap as Files ########
+Many enterprise applications expect configuration files.
+
+@@ Example:
+application.properties
+nginx.conf
+httpd.conf
+
+@@ Create ConfigMap
+[root@k8s-control01 ~]# vim nginx-cu-configmap.yml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  custom.conf: |
+    server {
+      listen 80;
+      location / {
+        return 200 'Hello Kubernetes';
+      }
+    }
+
+
+@@ Mount into Pod:
+[root@k8s-control01 ~]# vim nginx-cu-deployment.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-custom-pod
+  labels:
+    app: nginx-custom
+spec:
+  containers:
+    - name: nginx
+      image: nginx:alpine
+      ports:
+        - containerPort: 80
+      volumeMounts:
+        # Mount the volume inside the container's Nginx config directory
+        - name: config-volume
+          mountPath: /etc/nginx/conf.d/
+  volumes:
+    # Define the volume pulling from your ConfigMap
+    - name: config-volume
+      configMap:
+        name: nginx-config
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl exec -it POD_NAME -- ls /etc/nginx/conf.d
+
+@@ Expected:
+custom.conf
+
+@@ Why doesn't ConfigMap update automatically inside environment variables?
+=> Environment variables are loaded only at container startup.
+
+
+#################################
+##### Interview Questions #########
+What is a ConfigMap?
+Why do we use ConfigMaps?
+How do you create a ConfigMap?
+How do you view ConfigMaps?
+How do you inject ConfigMap into Pods?
+Difference between env and envFrom?
+How do you mount ConfigMap as a file?
+Why must Pods be restarted after ConfigMap changes?
+ConfigMap vs Secret?
+How would you manage configurations across dev, qa, and prod?
+How are ConfigMaps used in CI/CD?
+How would you troubleshoot missing ConfigMap values?
