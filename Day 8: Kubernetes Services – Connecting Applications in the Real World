@@ -108,7 +108,7 @@ spec:
 You should see nginx HTML page.
 
 Service Discovery Using DNS
-@@Verify:
+@@ Verify:
 / # nslookup nginx-service
 
 @@ Result:
@@ -133,3 +133,117 @@ Service
 Endpoints
    ⬇︎
  Pods
+
+#########################################
+########## NodePort Service ############
+@@ How do users access applications from outside?
+= > Using NodePort.
+
+@@ Architecture
+ Internet
+    ⬇︎
+NodeIP:30080
+    ⬇︎
+Service
+    ⬇︎
+  Pods
+
+@@ Create NodePort
+[root@k8s-control01 ~]# vim nodeport.yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-nodeport
+spec:
+  type: NodePort
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30080
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f nodeport.yml
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get svc
+
+@@ Access
+http://NODE-IP:30080
+
+###########################################
+######### LoadBalancer Service ##########
+Used mostly in Cloud.
+
+@@ Examples:
+AWS
+Azure
+GCP
+
+@@ Architecture:
+Internet
+    ⬇︎
+Cloud Load Balancer
+    ⬇︎
+Service
+    ⬇︎
+   Pods
+
+@@ Example
+spec:
+  type: LoadBalancer
+
+@@ Verify:
+kubectl get svc
+
+@@ Output:
+EXTERNAL-IP
+
+assigned automatically.
+
+#######################################
+######### ExternalName Service ##########
+Used when application needs external dependency.
+
+@@ Example:
+Application
+     ⬇︎
+Database Outside Kubernetes
+
+@@ Create:
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-external
+spec:
+  type: ExternalName
+  externalName: mysql.company.com
+
+Now Pods can use mysql-external instead of remembering FQDN.
+
+#####################################
+####### Service Types Summary #######
+Type	        Internal    	External
+ClusterIP        Yes                No
+NodePort	     Yes               Yes
+LoadBalancer	 Yes	           Yes
+ExternalName	External Resource	Yes
+
+#######################################
+########## Interview Questions ###########
+
+What is a Service?
+Why not use Pod IP directly?
+What is ClusterIP?
+What is NodePort?
+What are Endpoints?
+How does Service Discovery work?
+What is DNS in Kubernetes?
+What happens when a Pod is recreated?
+Difference between NodePort and LoadBalancer?
+What is ExternalName?
+How does Kubernetes load balancing work?
+Why do Services require labels and selectors?
+How would you troubleshoot a Service with no endpoints?
