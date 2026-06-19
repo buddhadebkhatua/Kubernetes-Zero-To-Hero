@@ -1,0 +1,404 @@
+########## Learning Objectives ############
+
+By the end of Day 11, you will understand:
+
+Container Filesystem
+Ephemeral Storage
+Volumes
+emptyDir
+hostPath
+Shared Volumes
+Multi-Container Communication
+Enterprise Use Cases
+Troubleshooting Volume Issues
+
+###################################################
+##### Understanding Container Filesystem #####
+@@ Create Pod:
+[root@k8s-control01 ~]# vim pod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: volume-demo
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f pod.yaml
+
+@@ Login:
+[root@k8s-control01 ~]# kubectl exec -it volume-demo -- bash
+
+@@ Create file:
+echo "Day11" > /tmp/day11.txt
+
+@@ Verify:
+cat /tmp/day11.txt
+
+@@ Output:
+Day11
+
+@@ Delete Pod:
+[root@k8s-control01 ~]# kubectl delete pod volume-demo
+
+Create again.
+
+@@ Check file:
+ls /tmp
+
+@@ Result:
+File Missing
+
+@@ Lesson
+Container filesystem Temporary, Ephemeral and Destroyed with Pod.
+
+#######################################
+@@ What is a Volume?
+=> Volume is storage attached to Pod.
+
+@@ Architecture:
+
+Pod
+ |
+Volume
+ |
+Container
+
+@@ Unlike container filesystem:
+Container Restart
+Volume Survives
+
+#################################
+########## emptyDir Volume ##############
+@@ Create:
+[root@k8s-control01 ~]# vim emptydir.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: emptydir-demo
+spec:
+  containers:
+  - name: app
+    image: busybox
+    command:
+      - sh
+      - -c
+      - sleep 3600
+    volumeMounts:
+    - name: shared-data
+      mountPath: /data
+  volumes:
+  - name: shared-data
+    emptyDir: {}
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f emptydir.yml
+
+@@ Login:
+[root@k8s-control01 ~]# kubectl exec -it emptydir-demo -- sh
+
+@@ Create file:
+[root@k8s-control01 ~]# echo "hello" > /data/test.txt
+
+@@ Verify:
+[root@k8s-control01 ~]# cat /data/test.txt
+
+@@ Restart Container:
+[root@k8s-control01 ~]# kubectl delete pod emptydir-demo
+
+Recreate.
+Check file.
+
+@@ Result:
+Data Lost
+
+@@ Because:
+Pod Deleted
+emptyDir Deleted
+
+Difference between Container Storage and emptyDir?
+
+Container Storage: Deleted when container restarts
+emptyDir: Survives container restart & Lost when Pod deleted
+
+########################################
+###### Multi-Container Shared Volume #######
+
+Real Kubernetes power starts here.
+
+Scenario
+
+Application writes logs.
+
+Log collector reads logs.
+
+Architecture:
+
+Container 1
+(Application)
+      |
+ shared volume
+      |
+Container 2
+(Log Collector)
+Lab
+
+Create:
+
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: multi-container
+
+spec:
+
+  containers:
+
+  - name: writer
+    image: busybox
+
+    command:
+      - sh
+      - -c
+      - while true; do date >> /shared/log.txt; sleep 5; done
+
+    volumeMounts:
+    - name: shared-storage
+      mountPath: /shared
+
+  - name: reader
+    image: busybox
+
+    command:
+      - sh
+      - -c
+      - tail -f /shared/log.txt
+
+    volumeMounts:
+    - name: shared-storage
+      mountPath: /shared
+
+  volumes:
+  - name: shared-storage
+    emptyDir: {}
+
+Apply:
+
+kubectl apply -f multi.yaml
+
+Check reader logs:
+
+kubectl logs multi-container -c reader
+
+Output:
+
+Mon Jul 21 10:01:01 UTC
+Mon Jul 21 10:01:06 UTC
+Mon Jul 21 10:01:11 UTC
+Real-World Example
+
+Before:
+
+Application
+|
+Local Logs
+
+Problem:
+
+Logs Lost
+
+Enterprise Solution:
+
+Application
+    |
+ emptyDir
+    |
+Fluent Bit Sidecar
+    |
+ElasticSearch
+
+This pattern is used everywhere.
+
+Part 5: hostPath Volume
+
+Dangerous but important.
+
+hostPath mounts node filesystem into Pod.
+
+Architecture
+
+Worker Node
+|
+/data
+|
+Pod
+
+Example
+
+volumes:
+- name: host-storage
+
+  hostPath:
+    path: /data
+
+Mount:
+
+volumeMounts:
+- mountPath: /host-data
+  name: host-storage
+
+Verify:
+
+kubectl exec -it hostpath-demo -- ls /host-data
+
+You will see node files.
+
+Why hostPath is Dangerous
+
+Pod gets access to:
+
+Node Filesystem
+
+Potential risks:
+
+Security Issues
+Node Manipulation
+Data Corruption
+Interview Question
+
+Should hostPath be used in production?
+
+Answer:
+
+Generally No.
+
+Only for:
+Monitoring Agents
+Node Exporters
+Special Use Cases
+Part 6: Enterprise Scenarios
+Scenario 1: Log Collection
+
+Application:
+
+Writes Logs
+
+Volume:
+
+emptyDir
+
+Collector:
+
+Fluent Bit
+
+Reads logs.
+
+Architecture:
+
+Application
+     |
+ emptyDir
+     |
+Fluent Bit
+     |
+ElasticSearch
+Scenario 2: Jenkins Agent
+
+Build Container:
+
+Compiles Code
+
+Volume:
+
+Workspace
+
+Another container:
+
+Uploads Artifact
+
+Architecture:
+
+Build Container
+      |
+ Shared Volume
+      |
+Upload Container
+Scenario 3: Kubernetes Monitoring
+
+Monitoring agent:
+
+Prometheus Node Exporter
+
+Needs:
+
+/proc
+/sys
+
+Uses:
+
+hostPath
+Troubleshooting Labs
+Scenario 1
+
+Pod Running
+
+File Missing
+
+Check:
+
+kubectl describe pod
+
+Verify:
+
+volumeMounts
+Scenario 2
+
+Container Cannot Write
+
+Check:
+
+kubectl exec -it POD -- sh
+
+Verify permissions:
+
+ls -ld /data
+Scenario 3
+
+Shared Volume Not Working
+
+Verify:
+
+kubectl describe pod
+
+Look for:
+
+Volume Mount Errors
+Scenario 4
+
+hostPath Empty
+
+Check worker node:
+
+ls /data
+
+Directory may not exist.
+
+Interview Questions
+Beginner
+What is a Kubernetes Volume?
+Why is container storage temporary?
+What is emptyDir?
+When is emptyDir deleted?
+Intermediate
+How do containers share data?
+What is hostPath?
+Difference between emptyDir and hostPath?
+Can emptyDir survive Pod deletion?
+Expert
+Why are volumes required?
+When would you use hostPath?
+Explain sidecar logging architecture.
+How does Kubernetes handle volume lifecycle?
