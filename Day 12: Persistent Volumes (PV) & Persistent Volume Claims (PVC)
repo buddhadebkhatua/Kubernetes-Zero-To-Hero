@@ -1,0 +1,296 @@
+######### Learning Objectives ###########
+
+By the end of Day 12, you will understand:
+
+Persistent Volume (PV)
+Persistent Volume Claim (PVC)
+Storage Architecture
+Access Modes
+Reclaim Policies
+Static Provisioning
+PV-PVC Binding
+Database Storage
+Troubleshooting Storage Issues
+
+############################################
+##### Kubernetes Storage Architecture ####
+
+Application
+    |
+  PVC
+    |
+  PV
+    |
+Storage
+
+@@ Real Example:
+
+MySQL Pod
+    |
+mysql-pvc
+    |
+mysql-pv
+    |
+NFS Storage
+
+@@ What is a Persistent Volume (PV)?
+=> PV is actual storage provided to Kubernetes.
+
+@@ Storage can come from:
+NFS, AWS EBS, Azure Disk, VMware vSAN, Ceph, Local Disk, SAN Storage
+
+#####################################
+@@ Create PV:
+[root@k8s-control01 ~]# vim pv.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-demo
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /data/pv-demo
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f pv.yaml
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get pv
+
+@@ Output:
+pv-demo 1Gi Available
+
+
+###############################
+### Understanding Access Modes #3#
+
+ReadWriteOnce (RWO)
+One Node
+Read + Write
+
+Used by: MySQL, PostgreSQL, MariaDB
+
+
+ReadOnlyMany (ROX)
+Multiple Nodes
+Read Only
+
+Example: Shared Documentation
+
+ReadWriteMany (RWX)
+Multiple Nodes
+Read + Write
+
+Used with: NFS, CephFS, NetApp
+
+
+###################################
+@@ What is PVC?
+=> Applications never use PV directly. Applications request storage using PVC.
+
+@@ Think: 
+Developer asks for storage (PVC)
+Storage Team provides: (PV)
+
+@@ Architecture
+
+Developer
+    |
+  PVC
+    |
+   PV
+    |
+Storage Admin
+
+############################
+##### Create PVC #######
+[root@k8s-control01 ~]# vim pvc.yml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f pvc.yml
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get pvc
+
+@@ Output:
+app-pvc Bound
+
+@@ Check PV
+[root@k8s-control01 ~]# kubectl get pv
+
+@@ Output:
+pv-demo Bound
+
+
+#############################
+##### Using PVC in Pod #####
+@@ Create Pod:
+[root@k8s-control01 ~]# vim pod.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-demo
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    volumeMounts:
+    - name: data-volume
+      mountPath: /data
+  volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+      claimName: app-pvc
+
+@@ Deploy:
+[root@k8s-control01 ~]#  kubectl apply -f pod.yml
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl exec -it pvc-demo -- bash
+
+@@ Create file:
+echo "Kubernetes Day12" > /data/test.txt
+
+@@ Delete Pod:
+[root@k8s-control01 ~]# kubectl delete pod pvc-demo
+
+Recreate Pod.
+
+@@ Check:
+cat /data/test.txt
+
+@@ Output:
+Kubernetes Day12
+
+@@ Lesson: Pod Deleted => Data Survives
+This is the entire purpose of PV/PVC.
+
+
+##########################################
+###### Reclaim Policies ###########
+@@ Retain:
+If you delete PVC data remains safe.
+
+Used in production databases.
+
+
+#########################################
+###### Real MySQL Project  ########
+
+@@ Deploy PV:
+
+[root@k8s-control01 ~]# vim pv-mysql.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-disk-01
+  labels:
+    usage: mysql-fast-storage
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/mysql"
+
+@@ Deploy PVC:
+
+[root@k8s-control01 ~]# vim pvc-mysql.yml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-dedicated-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      usage: mysql-fast-storage
+
+
+@@ Deploy MySQL:
+
+[root@k8s-control01 ~]# vim pod-mysql.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-pod
+  labels:
+    app: mysql-db
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: k8s-control01
+  containers:
+    - name: mysql
+      image: mysql:8.0
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "mysql@123"
+        - name: MYSQL_DATABASE
+          value: "app_database"
+      ports:
+        - containerPort: 3306
+          name: mysql-port
+      volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+
+  volumes:
+    - name: mysql-persistent-storage
+      persistentVolumeClaim:
+        claimName: mysql-dedicated-pvc
+
+
+@@ Architecture:
+
+MySQL
+  |
+mysql-pvc
+  |
+PV
+  |
+Storage
+
+###########################################3
+Now Delete Pod.
+Recreate Pod.
+
+@@ Verify:
+
+SHOW DATABASES;
+
+Database still exists.
+
+
+#################################################
+######### Interview Questions ##############
+What is a PV?
+What is a PVC?
+Why do we need Persistent Storage?
+Difference between Volume and PV?
+How does PVC bind to PV?
+What are Access Modes?
+What is ReadWriteOnce?
+How do Pods use PVC?
+Explain PV-PVC architecture.
+What are reclaim policies?
+Why are databases deployed with PVC?
+How would you troubleshoot a PVC in Pending state?
+Difference between static and dynamic provisioning?
