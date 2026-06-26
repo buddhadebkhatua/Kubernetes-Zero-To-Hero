@@ -1,0 +1,515 @@
+######## Learning Objectives ############
+
+By the end of Day 13, you will understand:
+
+NFS Storage
+RWX Storage
+Static Provisioning
+Dynamic Provisioning
+StorageClass
+Provisioners
+NFS Subdir External Provisioner
+Enterprise Storage Design
+What is a StorageClass?
+
+
+@@ StorageClass defines:
+Storage Type
+Performance
+Provisioner
+Policies
+
+@@ Example:
+gold-storage
+silver-storage
+bronze-storage
+
+@@ Real Enterprise Example
+Gold   → SSD Storage
+Silver → SAS Storage
+Bronze → SATA Storage
+
+Application Team chooses storageClassName: gold
+
+Kubernetes automatically creates storage.
+
+#########################################
+######## Storage Architecture ########
+
+@@ Without StorageClass
+
+Pod
+ |
+PVC
+ |
+PV
+ |
+Storage
+
+Manual.
+
+
+@@ With StorageClass
+
+Pod
+ |
+PVC
+ |
+StorageClass
+ |
+PV Auto Created
+ |
+Storage
+
+Automatic.
+
+
+################################
+Static vs Dynamic Provisioning
+
+@@ Static Provisioning
+Storage Admin will Create PV and Developer Create PVC then PVC binds.
+
+Problems: Manual & Slow, Difficult to Scale
+
+@@ Dynamic Provisioning
+Developer will Create PVC and Kubernetes Creates PV Automatically.
+
+Benefits: Fast, Scalable & Automated.
+
+
+@@ What is Dynamic Provisioning?
+=>Automatic creation of Persistent Volumes using StorageClass when a PVC is created.
+
+########################################
+### View Existing StorageClasses ###
+
+@@ Check cluster:
+[root@k8s-control01 ~]# kubectl get storageclass
+
+@@ Output:
+NAME                 PROVISIONER
+
+standard             kubernetes.io/aws-ebs
+fast                 ebs.csi.aws.com
+
+@@ Check details:
+
+[root@k8s-control01 ~]# kubectl describe storageclass standard
+
+Important Concept: One StorageClass is usually default.
+
+@@ Check:
+[root@k8s-control01 ~]# kubectl get storageclass
+
+
+########################################
+####### Create First StorageClass ############
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+
+metadata:
+  name: fast-storage
+
+provisioner: kubernetes.io/no-provisioner
+
+volumeBindingMode: WaitForFirstConsumer
+
+@@ Apply:
+[root@k8s-control01 ~]#  kubectl apply -f storageclass.yaml
+
+@@ Verify:
+[root@k8s-control01 ~]#  kubectl get sc
+
+
+Important Note: In Minikube/Kubeadm Labs StorageClass may not dynamically create storage without a CSI Driver.
+This is normal.
+
+
+#######################################
+###### Create PVC Using StorageClass  ###############
+
+PVC:
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-storage
+  resources:
+    requests:
+      storage: 1Gi
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f pvc.yaml
+
+@@ Check:
+[root@k8s-control01 ~]# kubectl get pvc
+[root@k8s-control01 ~]# kubectl get pv
+
+@@ Result:
+PV Created Automatically
+
+when dynamic provisioning exists.
+
+
+######################################################
+#### CSI (Container Storage Interface) Drivers ############
+
+How does Kubernetes talk to storage?
+=> CSI Driver
+
+@@ Architecture:
+
+Kubernetes
+      |
+ CSI Driver
+      |
+Storage
+
+@@ Examples:
+AWS
+AWS EBS CSI Driver
+
+Azure
+Azure Disk CSI Driver
+
+VMware
+vSphere CSI Driver
+
+NetApp
+NetApp Trident
+
+Ceph
+Ceph CSI
+
+@@ What is CSI?
+=> A standard interface that allows Kubernetes to communicate with storage providers.
+
+#######################################
+##### Enterprise Storage Classes ##########
+
+@@ Gold Storage
+storageClassName: gold
+
+Characteristics: SSD, High IOPS,Low Latency
+
+Used for: MySQL, PostgreSQL, Oracle
+
+@@ Silver Storage
+storageClassName: silver
+
+Characteristics: Medium Performance
+
+Used for: Applications, Middleware
+
+@@ Bronze Storage
+storageClassName: bronze
+
+Characteristics: Low Cost
+
+Used for: Logs, Backups, Archives
+
+#####################################
+##### Volume Expansion #####
+
+Example: Application needs 10GB, After six months needs 50GB
+
+Need storage expansion.
+
+StorageClass:
+allowVolumeExpansion: true
+
+PVC:
+
+resources:
+  requests:
+    storage: 50Gi
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f pvc.yaml
+
+Volume expands automatically.
+
+Architecture:
+
+MySQL
+   |
+ PVC
+   |
+StorageClass
+   |
+PV Auto Created
+   |
+Enterprise Storage
+
+@@ Architecture:
+Application Pod
+       |
+      PVC
+       |
+ StorageClass
+       |
+NFS Provisioner
+       |
+ NFS Server
+       |
+/nfs-share/k8s
+
+######################################
+########## NFS Server #############
+@@ Install:
+
+[root@k8s-control01 ~]# dnf install nfs-utils -y
+
+@@ Create Share:
+[root@k8s-control01 ~]# mkdir -p /nfs-share/k8s
+[root@k8s-control01 ~]# chmod 777 /nfs-share/k8s
+
+@@ Configure:
+[root@k8s-control01 ~]# vim /etc/exports
+/nfs-share/k8s *(rw,sync,no_root_squash)
+
+@@ Apply:
+[root@k8s-control01 ~]# exportfs -rav
+
+@@ Enable:
+[root@k8s-control01 ~]# systemctl enable --now nfs-server
+
+@@ Verify from worker node:
+[root@k8s-control01 ~]# showmount -e 10.10.10.100
+
+@@ Expected:
+/nfs-share/k8s
+
+Static Provisioning with NFS
+
+Create PV.
+
+apiVersion: v1
+kind: PersistentVolume
+
+metadata:
+  name: nfs-pv
+
+spec:
+  capacity:
+    storage: 20Gi
+
+  accessModes:
+  - ReadWriteMany
+
+  nfs:
+    path: /nfs-share/k8s
+    server: 10.10.10.100
+
+Apply:
+
+kubectl apply -f pv.yaml
+
+Create PVC.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+
+metadata:
+  name: nfs-pvc
+
+spec:
+  accessModes:
+  - ReadWriteMany
+
+  resources:
+    requests:
+      storage: 5Gi
+
+Apply:
+
+kubectl apply -f pvc.yaml
+
+Verify:
+
+kubectl get pv,pvc
+
+Output:
+
+PV      Bound
+
+PVC     Bound
+Intermediate Scenario
+
+Deploy two Pods.
+
+Both use same PVC.
+
+Pod A:
+
+echo "hello" > /data/test.txt
+
+Pod B:
+
+cat /data/test.txt
+
+Output:
+
+hello
+Problem with Static Provisioning
+
+Imagine:
+
+100 Developers
+
+500 Applications
+
+1000 PVCs
+
+Do you want to create:
+
+1000 PVs manually?
+
+No.
+
+Need automation.
+
+Part 4 – Dynamic Provisioning
+
+Storage should be created automatically.
+
+Architecture:
+
+PVC
+ |
+StorageClass
+ |
+Provisioner
+ |
+NFS
+What is a StorageClass?
+
+Think of StorageClass as:
+
+Storage Template
+
+Example:
+
+storageClassName: nfs-client
+What is a Provisioner?
+
+Provisioner automatically creates storage.
+
+Example:
+
+NFS Subdir External Provisioner
+
+Whenever PVC is created:
+
+Create New Directory
+
+Create PV
+
+Bind PVC
+
+Automatically.
+
+Part 5 – Install NFS Subdir External Provisioner
+
+Create namespace:
+
+kubectl create ns nfs-provisioner
+
+Add Helm repo:
+
+helm repo add nfs-subdir-external-provisioner \
+https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+helm repo update
+
+Install:
+
+helm install nfs-storage \
+nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+-n nfs-provisioner \
+--set nfs.server=10.10.10.100 \
+--set nfs.path=/nfs-share/k8s
+
+Verify:
+
+kubectl get pods -n nfs-provisioner
+
+Expected:
+
+Running
+Part 6 – StorageClass
+
+Verify:
+
+kubectl get storageclass
+
+Expected:
+
+nfs-client
+
+Describe:
+
+kubectl describe sc nfs-client
+
+Observe:
+
+Provisioner
+Reclaim Policy
+Volume Binding
+Part 7 – Dynamic PVC
+
+Now create only PVC.
+
+No PV.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+
+metadata:
+  name: dynamic-pvc
+
+spec:
+
+  storageClassName: nfs-client
+
+  accessModes:
+  - ReadWriteMany
+
+  resources:
+    requests:
+      storage: 2Gi
+
+Apply:
+
+kubectl apply -f pvc.yaml
+
+Check:
+
+kubectl get pvc
+kubectl get pv
+
+Observe:
+
+PVC Bound
+
+PV Auto Created
+###########################################
+######### Interview Questions ##########
+What is a StorageClass?
+Why do we need StorageClass?
+Difference between PV and StorageClass?
+What is Dynamic Provisioning?
+How does PVC use StorageClass?
+What is a Default StorageClass?
+How do you view StorageClasses?
+What is Volume Expansion?
+What is CSI?
+Explain Dynamic Provisioning architecture.
+Difference between Static and Dynamic Provisioning?
+How would you troubleshoot PVC Pending?
+How do enterprise storage systems integrate with Kubernetes?
