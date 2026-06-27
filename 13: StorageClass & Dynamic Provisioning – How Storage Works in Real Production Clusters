@@ -261,7 +261,7 @@ NFS Provisioner
 /nfs-share/k8s
 
 ######################################
-########## NFS Server #############
+########## NFS Server (On - Permises) #############
 @@ Install:
 
 [root@k8s-control01 ~]# dnf install nfs-utils -y
@@ -286,100 +286,65 @@ NFS Provisioner
 @@ Expected:
 /nfs-share/k8s
 
-Static Provisioning with NFS
+@@ Static Provisioning with NFS
 
-Create PV.
-
+[root@k8s-control01 ~]#  vim pv.yml
 apiVersion: v1
 kind: PersistentVolume
-
 metadata:
   name: nfs-pv
-
 spec:
   capacity:
     storage: 20Gi
-
   accessModes:
   - ReadWriteMany
-
   nfs:
     path: /nfs-share/k8s
     server: 10.10.10.100
 
-Apply:
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f pv.yml
 
-kubectl apply -f pv.yaml
+@@ Create PVC.
 
-Create PVC.
-
+[root@k8s-control01 ~]# vim pvc.yml
 apiVersion: v1
 kind: PersistentVolumeClaim
-
 metadata:
   name: nfs-pvc
-
 spec:
   accessModes:
   - ReadWriteMany
-
   resources:
     requests:
       storage: 5Gi
 
-Apply:
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f pvc.yml
 
-kubectl apply -f pvc.yaml
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get pv,pvc
 
-Verify:
-
-kubectl get pv,pvc
-
-Output:
+@@ Output:
 
 PV      Bound
 
 PVC     Bound
-Intermediate Scenario
 
-Deploy two Pods.
 
-Both use same PVC.
-
-Pod A:
-
-echo "hello" > /data/test.txt
-
-Pod B:
-
-cat /data/test.txt
-
-Output:
-
-hello
+###################################################
 Problem with Static Provisioning
 
-Imagine:
-
-100 Developers
-
-500 Applications
-
-1000 PVCs
-
-Do you want to create:
-
-1000 PVs manually?
-
-No.
+Imagine: 100 Developers,500 Applications and 1000 PVCs.
+Do you want to create 1000 PVs manually? No.
 
 Need automation.
 
-Part 4 – Dynamic Provisioning
+Dynamic Provisioning
 
 Storage should be created automatically.
 
-Architecture:
+@@ Architecture:
 
 PVC
  |
@@ -388,116 +353,93 @@ StorageClass
 Provisioner
  |
 NFS
-What is a StorageClass?
 
-Think of StorageClass as:
+@@ What is a StorageClass?
 
-Storage Template
+Think of StorageClass as Storage Template
 
-Example:
+Example: storageClassName: nfs-client
 
-storageClassName: nfs-client
-What is a Provisioner?
+@@ What is a Provisioner?
 
 Provisioner automatically creates storage.
 
-Example:
+Example: NFS Subdir External Provisioner
 
-NFS Subdir External Provisioner
+Whenever PVC is created: Create New Directory
 
-Whenever PVC is created:
+Create PV Bind PVC Automatically.
 
-Create New Directory
 
-Create PV
+###############################################
+### Install NFS Subdir External Provisioner ###
 
-Bind PVC
+@@ Create namespace:
 
-Automatically.
+[root@k8s-control01 ~]# kubectl create ns nfs-provisioner
 
-Part 5 – Install NFS Subdir External Provisioner
+@@ Add Helm repo:
 
-Create namespace:
+[root@k8s-control01 ~]# curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
+[root@k8s-control01 ~]# chmod 700 get_helm.sh
+[root@k8s-control01 ~]# ./get_helm.sh
+[root@k8s-control01 ~]# helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner
+[root@k8s-control01 ~]# helm repo update
 
-kubectl create ns nfs-provisioner
+@@ Install:
+[root@k8s-control01 ~]# helm install nfs-storage nfs-subdir-external-provisioner/nfs-subdir-external-provisioner -n nfs-provisioner --set nfs.server=10.2.4.70 --set nfs.path=/nfs-share/k8s
 
-Add Helm repo:
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get pods -n nfs-provisioner
 
-helm repo add nfs-subdir-external-provisioner \
-https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
-helm repo update
-
-Install:
-
-helm install nfs-storage \
-nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
--n nfs-provisioner \
---set nfs.server=10.10.10.100 \
---set nfs.path=/nfs-share/k8s
-
-Verify:
-
-kubectl get pods -n nfs-provisioner
-
-Expected:
-
+@@ Expected:
 Running
-Part 6 – StorageClass
 
-Verify:
+########################################
+############# StorageClass #########
 
-kubectl get storageclass
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get storageclass
 
-Expected:
+@@ Expected:
+[root@k8s-control01 ~]# nfs-client
 
-nfs-client
+@@ Describe:
+[root@k8s-control01 ~]# kubectl describe sc nfs-client
 
-Describe:
-
-kubectl describe sc nfs-client
-
-Observe:
-
+@@ Observe:
 Provisioner
 Reclaim Policy
 Volume Binding
-Part 7 – Dynamic PVC
 
-Now create only PVC.
+############################
+#### Dynamic PVC #####
 
-No PV.
+Now create only PVC. No PV.
 
+[root@k8s-control01 ~]# vim pvc.yml
 apiVersion: v1
 kind: PersistentVolumeClaim
-
 metadata:
   name: dynamic-pvc
-
 spec:
-
   storageClassName: nfs-client
-
   accessModes:
   - ReadWriteMany
-
   resources:
     requests:
       storage: 2Gi
 
-Apply:
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f pvc.yml
 
-kubectl apply -f pvc.yaml
+@@ Check:
+[root@k8s-control01 ~]# kubectl get pvc
+[root@k8s-control01 ~]# kubectl get pv
 
-Check:
+@@ Observe: PVC Bound, PV Auto Created
 
-kubectl get pvc
-kubectl get pv
 
-Observe:
-
-PVC Bound
-
-PV Auto Created
 ###########################################
 ######### Interview Questions ##########
 What is a StorageClass?
