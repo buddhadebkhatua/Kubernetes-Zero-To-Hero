@@ -1,0 +1,107 @@
+########## Learning Objectives ##########
+
+By the end of Day 14, you will understand:
+
+What is StatefulSet?
+Deployment vs StatefulSet
+Stable Network Identity
+Stable Storage
+Headless Service
+Ordered Deployment
+Ordered Scaling
+Ordered Termination
+Real Database Architecture
+Troubleshooting StatefulSets
+
+
+####################################
+#### Deployment vs StatefulSet ####
+
+Deployment: Imagine three replicas.
+
+nginx-78bc56
+nginx-9ab123
+nginx-ef2345
+
+@@ Delete one Pod.
+
+nginx-a92d88
+
+Deployment will create New Pod with New Name and New Identity.
+
+@@ Perfect for: Frontend, Backend, REST API, Microservices
+
+
+StatefulSet: Create three replicas.
+
+mysql-0
+mysql-1
+mysql-2
+
+@@ Delete:
+mysql-1
+
+@@ Kubernetes recreates:
+mysql-1
+
+Exactly the same identity.
+
+@@ Why not use Deployment for MySQL?
+=> Deployment does not provide Stable Identity, Stable Hostname, Stable Storage and Ordered Deployment.
+
+
+#############################################
+###### StatefulSet Architecture #######
+             Headless Service
+                    |
+    -----------------------------
+    |            |             |
+ mysql-0      mysql-1      mysql-2
+    |            |             |
+ mysql-pvc-0 mysql-pvc-1 mysql-pvc-2
+    |            |             |
+         NFS Storage
+
+
+###################################
+####### Headless Service ##########
+
+StatefulSets require a Headless Service.
+
+@@ Unlike ClusterIP:
+clusterIP: None
+
+[root@k8s-control01 ~]# vim headless-service.yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  clusterIP: None
+  selector:
+    app: mysql
+  ports:
+  - port: 3306
+
+@@ Apply:
+[root@k8s-control01 ~]# kubectl apply -f headless-service.yml
+
+@@ Verify
+[root@k8s-control01 ~]# kubectl get svc
+
+@@ Output
+mysql
+ClusterIP None
+
+
+@@ Why Headless Service?
+
+Each Pod gets DNS.
+
+@@ Example:
+mysql-0.mysql.default.svc.cluster.local
+mysql-1.mysql.default.svc.cluster.local
+mysql-2.mysql.default.svc.cluster.local
+
+Applications can communicate directly.
+
