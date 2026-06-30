@@ -1,0 +1,272 @@
+######## Learning Objectives ############
+
+By the end of Day 15, you will understand:
+
+Why health checks are required
+Liveness Probe
+Readiness Probe
+Startup Probe
+HTTP Probe
+TCP Probe
+Exec Probe
+Probe tuning
+Enterprise troubleshooting
+Production best practices
+
+#######################################
+### Understanding Kubernetes Probes ###
+@@ There are three probes.
+
+Startup Probe
+↓
+Readiness Probe
+↓
+Liveness Probe
+
+Each solves a different problem.
+
+
+##########################################
+########### Liveness Probe ############
+
+Purpose: Is the application alive?
+
+If NOT: Restart Container
+
+@@ Real Example
+Java application hangs, Container Running, Application Frozen.
+
+@@ Without Liveness Probe:
+Never Restarted, Users suffer.
+
+@@ With Liveness Probe:
+
+Application Not Responding
+↓
+Probe Fails
+↓
+Container Restarted
+
+Problem solved automatically.
+
+##############################
+### HTTP Liveness Probe ####
+[root@k8s-control01 ~]# vim liveness.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-http-example
+spec:
+  containers:
+    - name: web-app
+      image: nginx
+      ports:
+        - containerPort: 80
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 80
+        initialDelaySeconds: 15
+        periodSeconds: 10
+        timeoutSeconds: 2
+        failureThreshold: 3
+
+
+@@ Deploy.
+
+@@ Check:
+[root@k8s-control01 ~]# kubectl describe pod
+
+Look for: Liveness Probe
+
+
+@@ Difference between: Container Running vs Application Running
+=> A running container only means the container process exists.A Liveness Probe verifies the application inside the container is responding correctly.
+
+
+########################################
+######### Readiness Probe ###########
+Purpose: A readiness probe in Kubernetes determines if a container is ready to accept network traffic.
+If Not: Restart container
+
+@@ Architecture
+
+Users
+↓
+Service
+↓
+Ready Pods Only
+
+If Pod isn't ready: Removed From Service Endpoints, No traffic reaches it.
+
+[root@k8s-control01 ~]# vim rediness.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readiness-http-example
+spec:
+  containers:
+  - name: web-app
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 80
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+
+######################################
+######## Startup Probe ###########
+
+Purpose: A startup probe in Kubernetes determines if the application inside the container has successfully started.
+
+Without Startup Probe Liveness Probe starts immediately. Application still starting. Probe fails. Container restarts. Infinite restart loop.
+
+@@ Architecture
+
+Container Starts
+↓
+Startup Probe
+↓
+Application Ready
+↓
+Readiness Probe
+↓
+Liveness Probe
+
+
+[root@k8s-control01 ~]# vim startupprobe.yml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: startup-http-example
+spec:
+  containers:
+  - name: legacy-java-app
+    image: openjdk:17
+    ports:
+    - containerPort: 8080
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+      failureThreshold: 30
+      periodSeconds: 10
+
+
+###################################
+######### Exec Probe ############
+
+Purpose: An exec probe executes a specific command inside the target container to check its health.
+
+[root@k8s-control01 ~]# vim execprobe.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: exec-probe-example
+spec:
+  containers:
+  - name: worker-app
+    image: alpine:latest
+    # Simulates an app: initializes for 15s, then runs normally
+    command: ["/bin/sh", "-c", "sleep 15; touch /tmp/ready; while true; do touch /tmp/heartbeat; sleep 5; done"]
+    
+    # 1. Protects the slow initialization phase
+    startupProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/ready
+      failureThreshold: 10
+      periodSeconds: 3
+
+    # 2. Continually monitors if the app freezes
+    livenessProbe:
+      exec:
+        command:
+        - sh
+        - -c
+        - "find /tmp/heartbeat -mmin -1 | grep ."
+      periodSeconds: 10
+
+    # 3. Ensures the app is ready to take workload tasks
+    readinessProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/ready
+      periodSeconds: 5
+
+#################################
+########## TCP Probe ##########
+
+Purpose: A TCP probe in Kubernetes determines a container's health by attempting to open a TCP socket connection to a specified port.
+If the container opens the port and accepts the connection, the probe is successful. If the connection is refused, times out, or fails to connect, the probe is unhealthy.
+
+[root@k8s-control01 ~]# tcpprobe.yml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tcp-probe-example
+spec:
+  containers:
+  - name: redis-db
+    image: redis:7.0-alpine
+    ports:
+    - containerPort: 6379
+      name: redis-port
+    
+    # 1. Gives the database time to load dump files into memory
+    startupProbe:
+      tcpSocket:
+        port: redis-port   # Can use the named port or raw number 6379
+      failureThreshold: 15
+      periodSeconds: 5
+
+    # 2. Continually monitors if the database process crashes
+    livenessProbe:
+      tcpSocket:
+        port: 6379
+      periodSeconds: 10
+      timeoutSeconds: 2
+
+    # 3. Ensures the port is open to receive application traffic
+    readinessProbe:
+      tcpSocket:
+        port: 6379
+      periodSeconds: 5
+
+##########################################
+##### Production Architecture ###########
+                Users
+                  |
+             Ingress Controller
+                  |
+               Service
+                  |
+    --------------------------------
+    |              |              |
+  Pod-1          Pod-2         Pod-3
+ Ready ✔        Ready ✔      Not Ready ✖
+                                |
+                         Removed Automatically
+
+##########################################
+####### Interview Questions ############
+What is a Kubernetes Probe?
+What is a Liveness Probe?
+What is a Readiness Probe?
+What is a Startup Probe?
+Difference between Liveness and Readiness?
+When should you use Startup Probe?
+Difference between HTTP, TCP, and Exec probes?
+What happens if a Readiness Probe fails?
+Why do enterprise Java applications require Startup Probes?
+How would you troubleshoot CrashLoopBackOff caused by probes?
+How do Services interact with Readiness Probes?
+How do you tune probe parameters for applications with long startup times?
