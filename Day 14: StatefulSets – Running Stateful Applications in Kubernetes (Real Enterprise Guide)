@@ -95,8 +95,7 @@ ClusterIP None
 
 
 @@ Why Headless Service?
-
-Each Pod gets DNS.
+=> Each Pod gets DNS.
 
 @@ Example:
 mysql-0.mysql.default.svc.cluster.local
@@ -105,3 +104,68 @@ mysql-2.mysql.default.svc.cluster.local
 
 Applications can communicate directly.
 
+###################################################
+####### Create Your First StatefulSet ##########
+
+[root@k8s-control01 ~]# vim statefulset.yml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx
+spec:
+  serviceName: nginx
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/nginx/html
+
+  volumeClaimTemplates:
+  - metadata:
+     name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      storageClassName: nfs-client
+      resources:
+        requests:
+          storage: 1Gi
+
+@@ Deploy:
+[root@k8s-control01 ~]# kubectl apply -f statefulset.yml
+
+@@ Verify:
+[root@k8s-control01 ~]# kubectl get statefulset
+[root@k8s-control01 ~]# kubectl get pods
+[root@k8s-control01 ~]# kubectl get pvc
+[root@k8s-control01 ~]# kubectl get pv
+
+
+########################################
+###### Interview Questions ##########
+
+What is a StatefulSet?
+Why not use a Deployment for databases?
+What is a Headless Service?
+Why does a StatefulSet require a Headless Service?
+What is volumeClaimTemplates?
+How does StatefulSet provide stable storage?
+What happens when a StatefulSet Pod is deleted?
+Explain ordered startup and shutdown.
+Deployment vs StatefulSet?
+Explain StatefulSet architecture.
+Why do Kafka and MongoDB use StatefulSets?
+How would you troubleshoot a StatefulSet stuck in Pending?
+How does StatefulSet work with StorageClasses and NFS dynamic provisioning?
